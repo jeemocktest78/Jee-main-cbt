@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JEE Main CBT Mock Test</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#172033}
+header{background:#173b72;color:white;padding:16px;text-align:center}
+main{max-width:850px;margin:22px auto;padding:16px}
+.card{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 12px #0001;margin-bottom:16px}
+input,button{font-size:16px;padding:12px;border-radius:8px}
+input{width:100%;border:1px solid #ccd3df;margin:8px 0 14px}
+button{border:0;background:#174ea6;color:white;cursor:pointer}
+button:disabled{opacity:.4}
+.row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.option{display:block;padding:12px;border:1px solid #ccd3df;border-radius:8px;margin:10px 0;cursor:pointer}
+.option:has(input:checked){background:#e8f0fe;border-color:#174ea6}
+#exam,#result{display:none}.palette{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px}
+.palette button{padding:10px 4px;background:#e2e8f0;color:#172033}
+.palette button.answered{background:#198754;color:white}
+.small{color:#526079;font-size:14px}
+</style>
+</head>
+<body>
+<header><h2>JEE Main CBT Mock Test</h2><div>Physics · Chemistry · Mathematics</div></header>
+<main>
+<section id="start" class="card">
+<h2>Candidate Registration</h2>
+<p>Practice test · 75 questions · 180 minutes · 300 marks</p>
+<label for="student">Your name</label><input id="student" placeholder="Enter your name" maxlength="60">
+<label for="roll">Roll number (optional)</label><input id="roll" placeholder="Enter roll number" maxlength="30">
+<p class="small">Do not enter passwords or sensitive personal information.</p>
+<button onclick="startTest()">Start Test</button>
+</section>
+<section id="exam">
+<div class="card row"><div><b id="candidate"></b><div id="subject" class="small"></div></div><div><b id="timer">180:00</b><div class="small">Time remaining</div></div></div>
+<div class="card">
+<div class="row"><b id="qnumber"></b><span>+4 correct · −1 incorrect</span></div>
+<h3 id="question"></h3><div id="options"></div>
+<div class="row"><button onclick="previous()">Previous</button><button onclick="clearAnswer()">Clear response</button><button onclick="next()">Save & Next</button></div>
+<p><button onclick="markReview()">Mark for Review</button> <button onclick="submitTest()">Submit Test</button></p>
+</div>
+<div class="card"><b>Question palette</b><div id="palette" class="palette"></div></div>
+</section>
+<section id="result" class="card"><h2>Test Result</h2><div id="summary"></div><button onclick="location.reload()">Back to start</button></section>
+</main>
+<script>
+const bank=[
+{ s:"Physics",q:"A particle starts from rest with constant acceleration 2 m/s². Its speed after 5 s is:",o:["5 m/s","10 m/s","15 m/s","20 m/s"],a:1},
+{ s:"Physics",q:"The SI unit of electric potential is:",o:["Coulomb","Newton","Volt","Tesla"],a:2},
+{ s:"Physics",q:"For a projectile on level ground, the maximum range occurs at an angle of:",o:["30°","45°","60°","90°"],a:1},
+{ s:"Chemistry",q:"The pH of a neutral aqueous solution at 25°C is approximately:",o:["0","5","7","14"],a:2},
+{ s:"Chemistry",q:"The oxidation number of sulfur in H₂SO₄ is:",o:["+2","+4","+6","−2"],a:2},
+{ s:"Chemistry",q:"Which type of bond involves sharing electron pairs?",o:["Ionic","Covalent","Metallic only","Hydrogen only"],a:1},
+{ s:"Mathematics",q:"The derivative of x² with respect to x is:",o:["x","2x","x³","2"],a:1},
+{ s:"Mathematics",q:"The value of sin²θ + cos²θ is:",o:["0","1","2","Depends on θ"],a:1},
+{ s:"Mathematics",q:"The determinant of [[1,0],[0,1]] is:",o:["0","1","2","−1"],a:1}
+];
+let questions=[],answers={},review={},current=0,remaining=10800,interval=null,finished=false;
+function startTest(){
+const n=document.getElementById('student').value.trim();if(!n){alert('Please enter your name.');return}
+questions=Array.from({length:75},(_,i)=>({...bank[i%bank.length],s:i<25?'Physics':i<50?'Chemistry':'Mathematics',demo:i>=9}));
+document.getElementById('candidate').textContent=n;
+document.getElementById('start').style.display='none';document.getElementById('exam').style.display='block';
+drawPalette();showQuestion();interval=setInterval(()=>{remaining--;document.getElementById('timer').textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');if(remaining<=0)submitTest()},1000);
+}
+function showQuestion(){
+const q=questions[current];document.getElementById('qnumber').textContent='Question '+(current+1)+' of 75';
+document.getElementById('subject').textContent=q.s;
+document.getElementById('question').textContent=q.q;
+document.getElementById('options').innerHTML=q.o.map((x,i)=>'<label class="option"><input type="radio" name="answer" value="'+i+'" '+(answers[current]===i?'checked':'')+'> '+String.fromCharCode(65+i)+'. '+x+'</label>').join('');
+drawPalette();
+}
+function drawPalette(){document.getElementById('palette').innerHTML=questions.map((q,i)=>'<button class="'+(answers[i]!==undefined?'answered':'')+'" onclick="go('+i+')">'+(i+1)+(review[i]?' ★':'')+'</button>').join('')}
+function save(){const el=document.querySelector('input[name="answer"]:checked');if(el)answers[current]=Number(el.value);else delete answers[current]}
+function next(){save();if(current<74)current++;showQuestion()}
+function previous(){save();if(current>0)current--;showQuestion()}
+function go(i){save();current=i;showQuestion()}
+function clearAnswer(){delete answers[current];showQuestion()}
+function markReview(){save();review[current]=true;if(current<74)current++;showQuestion()}
+function submitTest(){if(finished)return;if(!confirm('Submit the test and see your result?'))return;finished=true;clearInterval(interval);save();let correct=0,wrong=0,score=0;questions.forEach((q,i)=>{if(q.demo)return;if(answers[i]===undefined)return;if(answers[i]===q.a){correct++;score+=4}else{wrong++;score--}});document.getElementById('exam').style.display='none';document.getElementById('result').style.display='block';document.getElementById('summary').innerHTML='<p>Candidate: '+document.getElementById('student').value.replace(/[&<>"]/g,'')+'</p><p>Score from currently available sample questions: <b>'+score+'</b></p><p>Correct: '+correct+' · Incorrect: '+wrong+' · Unanswered: '+(75-Object.keys(answers).length)+'</p><p class="small">This is only a prototype: questions repeat and are not a complete JEE paper. Scores are not saved to an online leaderboard.</p>'}
+</script>
+</body>
+</html>
